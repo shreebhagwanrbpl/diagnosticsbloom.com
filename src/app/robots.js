@@ -6,6 +6,6 @@ export default function robots() {
         },
 
         sitemap:
-            "https://clinidix.com/sitemap.xml",
+            "https://diagnosticsbloom.com/sitemap.xml",
     };
 }

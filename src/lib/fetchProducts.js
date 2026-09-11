@@ -1,19 +1,19 @@
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { fallbackProducts, makeSlug } from "@/data/productsData";
+import { makeSlug } from "@/data/productsData";
 import { fetchFullCatalog } from "@/lib/data-fetcher";
 
 /**
  * Standardizes raw Firestore product/item document object to standard shape
  */
-export function normalizeProduct(item, defaultCategory = "Diagnostic Equipment") {
+export function normalizeProduct(item, defaultCategory = "") {
   if (!item || typeof item !== "object") return null;
 
   const title = (item.title || item.name || item.productName || item.itemName || "").trim();
   if (!title) return null;
 
   const rawSlug = item.slug || item.productSlug || item.itemSlug || makeSlug(title);
-  const category = item.category || item.categoryName || defaultCategory || "Diagnostic Equipment";
+  const category = item.category || item.categoryName || defaultCategory || "";
   const subCategory = item.subCategory || item["sub category"] || item.subCategoryName || "";
 
   const description =
@@ -35,8 +35,8 @@ export function normalizeProduct(item, defaultCategory = "Diagnostic Equipment")
   let features = Array.isArray(item.features)
     ? item.features.filter(Boolean)
     : typeof item.features === "string"
-    ? item.features.split(",").map((f) => f.trim()).filter(Boolean)
-    : [];
+      ? item.features.split(",").map((f) => f.trim()).filter(Boolean)
+      : [];
 
   return {
     ...item,
@@ -62,7 +62,7 @@ export function normalizeProduct(item, defaultCategory = "Diagnostic Equipment")
     features,
     specs: item.specs && typeof item.specs === "object" ? item.specs : null,
     badge: item.badge || item.tag || "",
-    status: item.status || item.availability || "In Stock",
+    status: item.status || item.availability || "",
     image,
     images,
     video: item.video || "",
@@ -96,8 +96,8 @@ export async function fetchAllDynamicProducts() {
 
     // 2. Fetch extra fallback collections if any
     const extraSnapshots = await Promise.allSettled([
-      getDocs(collection(db, "websites", "clinidixcom", "products")),
-      getDocs(collection(db, "websites", "clinidixcom", "items")),
+      getDocs(collection(db, "websites", "diagnosticsbloomcom", "products")),
+      getDocs(collection(db, "websites", "diagnosticsbloomcom", "items")),
       getDocs(collection(db, "products")),
       getDocs(collection(db, "items")),
     ]);
@@ -118,5 +118,5 @@ export async function fetchAllDynamicProducts() {
     return fetchedList;
   }
 
-  return fallbackProducts;
+  return [];
 }

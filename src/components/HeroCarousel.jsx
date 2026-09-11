@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,30 +17,36 @@ import {
   Film,
 } from "lucide-react";
 
-// Default high-quality fallback slides if database has no media configured yet
+/* =========================================================
+   HERO IMAGE FALLBACK ONLY
+   ---------------------------------------------------------
+   IMPORTANT:
+   No static text fallback is used anywhere.
+   These images are ONLY used when Firebase media is empty
+   or a Firebase image fails to load.
+========================================================= */
+
 const FALLBACK_SLIDES = [
   {
+    id: "fallback-1",
     type: "image",
     url: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1900&q=80",
-    title: "Precision Medical Equipment & Diagnostic Solutions",
-    subtitle:
-      "Equipping hospitals, pathology centers, and clinical laboratories with top-tier automated analyzers, NABL-traceable calibration, and 24/7 rapid technical engineering support across India.",
   },
   {
+    id: "fallback-2",
     type: "image",
     url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1900&q=80",
-    title: "Automated Clinical Chemistry & Pathology Analyzers",
-    subtitle:
-      "High-throughput diagnostic instruments delivering rapid test results with uncompromised quality control and ISO 13485 certified accuracy standards.",
   },
   {
+    id: "fallback-3",
     type: "image",
     url: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1900&q=80",
-    title: "24/7 Biomedical Engineering & AMC Support",
-    subtitle:
-      "Guaranteed 2-hour emergency repair SLA for critical ICU, OT, and pathology laboratory equipment with genuine OEM parts.",
   },
 ];
+
+/* =========================================================
+   HERO CAROUSEL
+========================================================= */
 
 export default function HeroCarousel({
   homeData = null,
@@ -48,22 +55,45 @@ export default function HeroCarousel({
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+
+  const [imageErrors, setImageErrors] = useState({});
+
   const videoRefs = useRef({});
 
-  // Parse media items from Firestore home data
+  /* =======================================================
+     PARSE DYNAMIC MEDIA
+  ======================================================= */
+
   const parseMediaList = (data) => {
     if (!data) return [];
+
     const list = [];
 
-    // 1. Check media array (preferred)
-    if (Array.isArray(data.media) && data.media.length > 0) {
+    /* -------------------------------------------------------
+       Dynamic media array
+    ------------------------------------------------------- */
+
+    if (
+      Array.isArray(data.media) &&
+      data.media.length > 0
+    ) {
       data.media.forEach((item, idx) => {
-        const url = typeof item === "string" ? item : item?.url;
+        const url =
+          typeof item === "string"
+            ? item.trim()
+            : item?.url?.trim?.() || item?.url;
+
         const type =
           item?.type ||
-          (url?.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) ? "video" : "image");
+          (url?.match(
+            /\.(mp4|webm|ogg|mov)(\?.*)?$/i
+          )
+            ? "video"
+            : "image");
+
         if (url) {
           list.push({
             id: `media-${idx}`,
@@ -74,9 +104,21 @@ export default function HeroCarousel({
       });
     }
 
-    // 2. Check images array
-    if (list.length === 0 && Array.isArray(data.images) && data.images.length > 0) {
-      data.images.forEach((url, idx) => {
+    /* -------------------------------------------------------
+       Dynamic images array
+    ------------------------------------------------------- */
+
+    if (
+      list.length === 0 &&
+      Array.isArray(data.images) &&
+      data.images.length > 0
+    ) {
+      data.images.forEach((item, idx) => {
+        const url =
+          typeof item === "string"
+            ? item.trim()
+            : item?.url?.trim?.() || item?.url;
+
         if (url) {
           list.push({
             id: `img-${idx}`,
@@ -87,327 +129,1001 @@ export default function HeroCarousel({
       });
     }
 
-    // 3. Check single imageUrl / image
-    if (list.length === 0 && (data.imageUrl || data.image)) {
-      const singleImg = data.imageUrl || data.image;
-      if (singleImg) {
+    /* -------------------------------------------------------
+       Dynamic single image
+    ------------------------------------------------------- */
+
+    if (
+      list.length === 0 &&
+      (data.imageUrl || data.image)
+    ) {
+      const url =
+        data.imageUrl?.trim?.() ||
+        data.imageUrl ||
+        data.image?.trim?.() ||
+        data.image;
+
+      if (url) {
         list.push({
           id: "single-img",
           type: "image",
-          url: singleImg,
+          url,
         });
       }
     }
 
-    // 4. Check videos array
-    if (Array.isArray(data.videos) && data.videos.length > 0) {
-      data.videos.forEach((vUrl, idx) => {
-        if (vUrl && !list.some((item) => item.url === vUrl)) {
+    /* -------------------------------------------------------
+       Dynamic videos array
+    ------------------------------------------------------- */
+
+    if (
+      Array.isArray(data.videos) &&
+      data.videos.length > 0
+    ) {
+      data.videos.forEach((item, idx) => {
+        const url =
+          typeof item === "string"
+            ? item.trim()
+            : item?.url?.trim?.() || item?.url;
+
+        if (
+          url &&
+          !list.some(
+            (existing) =>
+              existing.url === url
+          )
+        ) {
           list.push({
             id: `vid-${idx}`,
             type: "video",
-            url: vUrl,
+            url,
           });
         }
       });
     }
 
-    // 5. Check single videoUrl
-    if (data.videoUrl && !list.some((item) => item.url === data.videoUrl)) {
-      list.push({
-        id: "single-vid",
-        type: "video",
-        url: data.videoUrl,
-      });
-    }
+    /* -------------------------------------------------------
+       Dynamic single video
+    ------------------------------------------------------- */
 
-    return list;
-  };
+    if (data.videoUrl) {
+      const videoUrl =
+        data.videoUrl?.trim?.() ||
+        data.videoUrl;
 
-  const dbSlides = parseMediaList(homeData);
-  const slides = dbSlides.length > 0 ? dbSlides : FALLBACK_SLIDES;
-
-  // Dynamic texts with fallbacks
-  const heroTitle =
-    homeData?.title?.trim() ||
-    (locationTitle
-      ? `Precision Medical Equipment & Diagnostic Solutions in ${locationTitle}`
-      : "Precision Medical Equipment & Diagnostic Solutions");
-
-  const heroDescription =
-    homeData?.description?.trim() ||
-    "Equipping hospitals, pathology centers, and clinical laboratories with top-tier automated analyzers, NABL-traceable calibration, and 24/7 rapid technical engineering support across India.";
-
-  const btn1Text = homeData?.button1Text?.trim() || "Explore Product Catalog";
-  const btn2Text = homeData?.button2Text?.trim() || "Request Official Quote";
-
-  // Static routes for buttons
-  const btn1Href = makeLink("/items");
-  const btn2Href = makeLink("/contact");
-
-  // Auto-slide effect
-  useEffect(() => {
-    if (!isPlaying || slides.length <= 1) return;
-
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5500);
-
-    return () => clearInterval(timer);
-  }, [isPlaying, slides.length, currentSlide]);
-
-  // Adjust active slide index safely if slides array length changes
-  useEffect(() => {
-    if (currentSlide >= slides.length && slides.length > 0) {
-      setCurrentSlide(slides.length - 1);
-    }
-  }, [slides.length, currentSlide]);
-
-  // Play video on current slide
-  useEffect(() => {
-    const currentMedia = slides[currentSlide];
-    if (currentMedia?.type === "video") {
-      const vid = videoRefs.current[currentSlide];
-      if (vid) {
-        vid.currentTime = 0;
-        vid.play().catch(() => {});
+      if (
+        videoUrl &&
+        !list.some(
+          (item) =>
+            item.url === videoUrl
+        )
+      ) {
+        list.push({
+          id: "single-vid",
+          type: "video",
+          url: videoUrl,
+        });
       }
     }
-  }, [currentSlide, slides]);
+
+    /* -------------------------------------------------------
+       Remove duplicate media
+    ------------------------------------------------------- */
+
+    const unique = [];
+    const seen = new Set();
+
+    list.forEach((item) => {
+      if (!item?.url) return;
+
+      if (seen.has(item.url)) return;
+
+      seen.add(item.url);
+      unique.push(item);
+    });
+
+    return unique;
+  };
+
+  /* =======================================================
+     SLIDES
+     -------------------------------------------------------
+     Dynamic Firebase media first.
+     Static fallback ONLY for images.
+  ======================================================= */
+
+  const dbSlides =
+    parseMediaList(homeData);
+
+  const slides =
+    dbSlides.length > 0
+      ? dbSlides
+      : FALLBACK_SLIDES;
+
+  /* =======================================================
+     DYNAMIC HERO TEXT
+     -------------------------------------------------------
+     NO STATIC FALLBACKS.
+     
+     If Firebase field is empty:
+     → empty string
+     → element will not render.
+  ======================================================= */
+
+  const heroTitle =
+    typeof homeData?.title === "string"
+      ? homeData.title.trim()
+      : "";
+
+  const heroDescription =
+    typeof homeData?.description === "string"
+      ? homeData.description.trim()
+      : "";
+
+  const btn1Text =
+    typeof homeData?.button1Text === "string"
+      ? homeData.button1Text.trim()
+      : "";
+
+  const btn2Text =
+    typeof homeData?.button2Text === "string"
+      ? homeData.button2Text.trim()
+      : "";
+
+  /* =======================================================
+     BUTTON LINKS
+     -------------------------------------------------------
+     IMPORTANT:
+     Links remain STATIC.
+  ======================================================= */
+
+  const btn1Href =
+    makeLink("/items");
+
+  const btn2Href =
+    makeLink("/contact");
+
+  /* =======================================================
+     AUTO PLAY
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      !isPlaying ||
+      slides.length <= 1
+    ) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCurrentSlide(
+        (prev) =>
+          (prev + 1) %
+          slides.length
+      );
+    }, 5500);
+
+    return () =>
+      clearInterval(timer);
+  }, [
+    isPlaying,
+    slides.length,
+  ]);
+
+  /* =======================================================
+     SLIDE INDEX SAFETY
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      currentSlide >= slides.length &&
+      slides.length > 0
+    ) {
+      setCurrentSlide(
+        slides.length - 1
+      );
+    }
+  }, [
+    slides.length,
+    currentSlide,
+  ]);
+
+  /* =======================================================
+     VIDEO PLAY
+  ======================================================= */
+
+  useEffect(() => {
+    const media =
+      slides[currentSlide];
+
+    if (
+      media?.type === "video"
+    ) {
+      const video =
+        videoRefs.current[
+        currentSlide
+        ];
+
+      if (video) {
+        video.currentTime = 0;
+
+        video
+          .play()
+          .catch(() => { });
+      }
+    }
+  }, [
+    currentSlide,
+    slides,
+  ]);
+
+  /* =======================================================
+     PREVIOUS
+  ======================================================= */
 
   const handlePrev = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    if (!slides.length) return;
+
+    setCurrentSlide(
+      (prev) =>
+        (prev - 1 + slides.length) %
+        slides.length
+    );
   };
+
+  /* =======================================================
+     NEXT
+  ======================================================= */
 
   const handleNext = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    if (!slides.length) return;
+
+    setCurrentSlide(
+      (prev) =>
+        (prev + 1) %
+        slides.length
+    );
   };
 
-  // Touch swipe support for mobile
-  const minSwipeDistance = 50;
+  /* =======================================================
+     TOUCH START
+  ======================================================= */
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+
+    setTouchStart(
+      e.targetTouches[0].clientX
+    );
   };
+
+  /* =======================================================
+     TOUCH MOVE
+  ======================================================= */
 
   const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEnd(
+      e.targetTouches[0].clientX
+    );
   };
 
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+  /* =======================================================
+     TOUCH END
+  ======================================================= */
 
-    if (isLeftSwipe) {
+  const onTouchEnd = () => {
+    if (
+      touchStart == null ||
+      touchEnd == null
+    ) {
+      return;
+    }
+
+    const distance =
+      touchStart - touchEnd;
+
+    if (distance > 50) {
       handleNext();
-    } else if (isRightSwipe) {
+    }
+
+    if (distance < -50) {
       handlePrev();
     }
   };
 
-  const activeMedia = slides[currentSlide] || slides[0];
+  /* =======================================================
+     IMAGE ERROR → FALLBACK IMAGE
+  ======================================================= */
+
+  const handleImageError = (
+    event,
+    slideIndex
+  ) => {
+    const fallback =
+      FALLBACK_SLIDES[
+      slideIndex %
+      FALLBACK_SLIDES.length
+      ];
+
+    setImageErrors((prev) => ({
+      ...prev,
+      [slideIndex]: true,
+    }));
+
+    if (
+      event.currentTarget.src !==
+      fallback.url
+    ) {
+      event.currentTarget.src =
+        fallback.url;
+    }
+  };
+
+  /* =======================================================
+     ACTIVE MEDIA
+  ======================================================= */
+
+  const activeMedia =
+    slides[currentSlide] ||
+    FALLBACK_SLIDES[0];
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
-    <section className="relative overflow-hidden bg-[#1a0f05] text-white">
-      {/* Background Media Viewport with Full Brightness & High Image Visibility */}
-      <div
-        className="relative w-full h-[380px] sm:h-[440px] md:h-[490px] lg:h-[530px] overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide}
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="absolute inset-0 w-full h-full"
+    <section
+      className="
+        hero-editorial
+        relative
+        overflow-hidden
+        bg-[#F7FBF6]
+        py-3
+        sm:py-4
+        lg:py-5
+      "
+    >
+      <div className="container-custom">
+
+        {/* =================================================
+            HERO CARD
+        ================================================= */}
+
+        <div
+          className="
+            relative
+            overflow-hidden
+            rounded-[28px]
+            border
+            border-[#CFE1CF]
+            bg-white
+            shadow-[0_24px_70px_rgba(47,107,60,0.14)]
+            sm:rounded-[36px]
+          "
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+
+          {/* =================================================
+              HERO GRID
+          ================================================= */}
+
+          <div
+            className="
+              grid
+              min-h-[340px]
+              md:min-h-[400px]
+              lg:min-h-[455px]
+              xl:min-h-[480px]
+              lg:grid-cols-[1.05fr_0.95fr]
+            "
           >
-            {activeMedia?.type === "video" ? (
-              <video
-                ref={(el) => (videoRefs.current[currentSlide] = el)}
-                src={activeMedia.url}
-                className="w-full h-full object-cover object-center"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-              />
-            ) : (
-              <img
-                src={activeMedia?.url}
-                alt={`Hero Slide ${currentSlide + 1}`}
-                className="w-full h-full object-cover object-center brightness-[0.95] contrast-[1.05]"
-                onError={(e) => {
-                  e.target.src = FALLBACK_SLIDES[0].url;
-                }}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
 
-        {/* Soft, Non-intrusive Gradient only on text side (Leaves image bright and visible) */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-transparent lg:w-3/5" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+            {/* ===============================================
+                LEFT CONTENT
+            =============================================== */}
 
-        {/* Foreground Content Container */}
-        <div className="container-custom relative z-20 h-full flex flex-col justify-center py-6 sm:py-8">
-          <div className="max-w-2xl lg:max-w-3xl">
-            {/* Top Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: -15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/50 px-3.5 py-1.5 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-[#FDFBD4] shadow-lg backdrop-blur-md"
+            <div
+              className="
+                order-2
+                flex
+                items-center
+                p-5
+                sm:p-7
+                md:p-8
+                lg:order-1
+                lg:p-9
+                xl:p-10
+              "
             >
-              <Sparkles size={14} className="text-[#FBBF24] animate-pulse" />
-              <span>
-                {locationTitle
-                  ? `Leading Biomedical Supplier in ${locationTitle}`
-                  : "Pioneering Biomedical & Diagnostic Innovations"}
-              </span>
-            </motion.div>
+              <div className="max-w-2xl">
 
-            {/* Main Heading with crisp drop-shadow */}
-            <motion.h1
-              key={`title-${currentSlide}-${heroTitle}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="mt-3 sm:mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl md:text-4xl lg:text-5xl leading-[1.14] drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]"
-            >
-              {heroTitle}
-            </motion.h1>
+                {/* ===========================================
+                    LOCATION BADGE
+                    Static UI text — NOT hero content fallback.
+                =========================================== */}
 
-            {/* Description with crisp drop-shadow */}
-            <motion.p
-              key={`desc-${currentSlide}-${heroDescription}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-2.5 sm:mt-3 text-xs sm:text-sm md:text-base leading-relaxed text-[#FDFBD4] max-w-2xl font-medium line-clamp-3 md:line-clamp-none drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
-            >
-              {heroDescription}
-            </motion.p>
+                {locationTitle && (
+                  <motion.div
+                    initial={{
+                      opacity: 0,
+                      y: -12,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    className="
+                      mb-4
+                      inline-flex
+                      items-center
+                      gap-2
+                      rounded-full
+                      border
+                      border-[#CFE1CF]
+                      bg-[#EAF4E8]
+                      px-3.5
+                      py-1.5
+                      text-[11px]
+                      font-extrabold
+                      uppercase
+                      tracking-wider
+                      text-[#193522]
+                    "
+                  >
+                    <Sparkles
+                      size={14}
+                      className="text-[#2F6B3C]"
+                    />
 
-            {/* Action Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-5 sm:mt-6 flex flex-wrap items-center gap-3"
-            >
-              <Link
-                href={btn1Href}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#C05800] !text-white px-6 py-3 text-xs sm:text-sm font-bold shadow-xl shadow-[#C05800]/40 transition-all duration-300 hover:bg-[#E06D00] hover:shadow-2xl hover:-translate-y-0.5 border border-amber-400/20"
-              >
-                <span className="!text-white font-bold">{btn1Text}</span>
-                <ArrowRight size={16} className="!text-white" />
-              </Link>
+                    Leading Biomedical Supplier
+                    in {locationTitle}
+                  </motion.div>
+                )}
 
-              <Link
-                href={btn2Href}
-                className="flex items-center justify-center gap-2 rounded-xl border border-white/50 bg-black/60 !text-white px-6 py-3 text-xs sm:text-sm font-bold backdrop-blur-md shadow-md transition-all duration-300 hover:bg-white hover:!text-[#38240D] hover:border-white hover:-translate-y-0.5"
-              >
-                <PhoneCall size={16} className="text-[#FBBF24]" />
-                <span className="font-bold">{btn2Text}</span>
-              </Link>
-            </motion.div>
+                {/* ===========================================
+                    DYNAMIC HERO TITLE
+                    Firebase ONLY
+                =========================================== */}
 
-            {/* Trust Badges */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-5 hidden sm:flex flex-wrap items-center gap-5 border-t border-white/20 pt-4 text-xs font-semibold text-[#FDFBD4] drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
-            >
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={16} className="text-[#FBBF24] shrink-0" />
-                <span>ISO 13485 Certified</span>
+                {heroTitle && (
+                  <motion.h1
+                    key={`title-${currentSlide}-${heroTitle}`}
+                    initial={{
+                      opacity: 0,
+                      y: 18,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    className="
+                      hero-editorial-title
+                      text-3xl
+                      font-black
+                      leading-[1.05]
+                      tracking-tight
+                      !text-[#193522]
+                      sm:text-4xl
+                      md:text-5xl
+                      lg:text-[52px]
+                      xl:text-[56px]
+                    "
+                  >
+                    {heroTitle}
+                  </motion.h1>
+                )}
+
+                {/* ===========================================
+                    DYNAMIC DESCRIPTION
+                    Firebase ONLY
+                =========================================== */}
+
+                {heroDescription && (
+                  <motion.p
+                    key={`desc-${currentSlide}-${heroDescription}`}
+                    initial={{
+                      opacity: 0,
+                      y: 18,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
+                    className="
+                      hero-editorial-description
+                      mt-4
+                      max-w-xl
+                      text-sm
+                      font-medium
+                      leading-6
+                      !text-[#657566]
+                      sm:text-base
+                      md:text-lg
+                    "
+                  >
+                    {heroDescription}
+                  </motion.p>
+                )}
+
+                {/* ===========================================
+                    BUTTONS
+                    Text = Firebase
+                    Link = Static
+                =========================================== */}
+
+                {(btn1Text ||
+                  btn2Text) && (
+                    <motion.div
+                      initial={{
+                        opacity: 0,
+                        y: 18,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      className="
+                      mt-5
+                      flex
+                      flex-wrap
+                      gap-3
+                    "
+                    >
+
+                      {/* PRIMARY BUTTON */}
+
+                      {btn1Text && (
+                        <Link
+                          href={btn1Href}
+                          className="
+                          hero-editorial-btn
+                          inline-flex
+                          items-center
+                          justify-center
+                          gap-2
+                          rounded-2xl
+                          bg-[#2F6B3C]
+                          px-6
+                          py-3.5
+                          text-sm
+                          font-bold
+                          !text-white
+                          shadow-lg
+                          shadow-[#2F6B3C]/25
+                          transition-all
+                          duration-300
+                          hover:-translate-y-1
+                          hover:bg-[#24572F]
+                          hover:shadow-xl
+                        "
+                        >
+                          <span className="!text-white">
+                            {btn1Text}
+                          </span>
+
+                          <ArrowRight
+                            size={16}
+                            className="!text-white"
+                          />
+                        </Link>
+                      )}
+
+                      {/* SECONDARY BUTTON */}
+
+                      {btn2Text && (
+                        <Link
+                          href={btn2Href}
+                          className="
+                          hero-editorial-secondary
+                          inline-flex
+                          items-center
+                          justify-center
+                          gap-2
+                          rounded-2xl
+                          border
+                          border-[#CFE1CF]
+                          bg-[#F7FBF6]
+                          px-6
+                          py-3.5
+                          text-sm
+                          font-bold
+                          !text-[#193522]
+                          transition-all
+                          duration-300
+                          hover:-translate-y-1
+                          hover:bg-[#EAF4E8]
+                        "
+                        >
+                          <PhoneCall
+                            size={16}
+                            className="text-[#2F6B3C]"
+                          />
+
+                          <span className="!text-[#193522]">
+                            {btn2Text}
+                          </span>
+                        </Link>
+                      )}
+
+                    </motion.div>
+                  )}
+
+                {/* ===========================================
+                    TRUST FEATURES
+                =========================================== */}
+
+                <div
+                  className="
+                    mt-5
+                    flex
+                    flex-wrap
+                    gap-x-5
+                    gap-y-2
+                    border-t
+                    border-[#CFE1CF]
+                    pt-4
+                    text-xs
+                    font-bold
+                    text-[#657566]
+                  "
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2
+                      size={15}
+                      className="text-[#2F6B3C]"
+                    />
+                    ISO 13485 Certified
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2
+                      size={15}
+                      className="text-[#2F6B3C]"
+                    />
+                    24/7 SLA Field Support
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2
+                      size={15}
+                      className="text-[#2F6B3C]"
+                    />
+                    NABL Traceable QC
+                  </span>
+                </div>
+
               </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={16} className="text-[#FBBF24] shrink-0" />
-                <span>24/7 SLA Field Support</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={16} className="text-[#FBBF24] shrink-0" />
-                <span>NABL Traceable QC</span>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Carousel Floating Controls Bar */}
-        {slides.length > 1 && (
-          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 flex items-center gap-2 sm:gap-3">
-            {/* Auto-play toggle */}
-            <button
-              type="button"
-              onClick={() => setIsPlaying(!isPlaying)}
-              title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
-              className="hidden sm:flex h-9 w-9 items-center justify-center rounded-xl bg-black/60 text-white backdrop-blur-md border border-white/30 hover:bg-black/85 transition-all shadow-md"
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-            </button>
-
-            {/* Prev Button */}
-            <button
-              type="button"
-              onClick={handlePrev}
-              title="Previous Slide"
-              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-black/60 text-white backdrop-blur-md border border-white/30 hover:bg-[#C05800] hover:border-[#C05800] transition-all shadow-md"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            {/* Counter Badge */}
-            <div className="flex items-center gap-1.5 rounded-xl bg-black/70 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold text-[#FDFBD4] backdrop-blur-md border border-white/30 shadow-md">
-              {activeMedia?.type === "video" ? (
-                <Film size={12} className="text-[#FBBF24]" />
-              ) : (
-                <ImageIcon size={12} className="text-[#FBBF24]" />
-              )}
-              <span>
-                {currentSlide + 1} / {slides.length}
-              </span>
             </div>
 
-            {/* Next Button */}
-            <button
-              type="button"
-              onClick={handleNext}
-              title="Next Slide"
-              className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-black/60 text-white backdrop-blur-md border border-white/30 hover:bg-[#C05800] hover:border-[#C05800] transition-all shadow-md"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
+            {/* ===============================================
+                RIGHT MEDIA
+            =============================================== */}
 
-        {/* Bottom Pagination Dots */}
-        {slides.length > 1 && (
-          <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-30 flex items-center gap-1.5 sm:gap-2">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setCurrentSlide(idx)}
-                aria-label={`Go to slide ${idx + 1}`}
-                className={`transition-all duration-300 rounded-full h-2 sm:h-2.5 ${
-                  currentSlide === idx
-                    ? "w-6 sm:w-8 bg-[#FBBF24] shadow-md shadow-[#FBBF24]/60"
-                    : "w-2 sm:w-2.5 bg-white/60 hover:bg-white"
-                }`}
+            <div
+              className="
+                relative
+                order-1
+                min-h-[220px]
+                overflow-hidden
+                bg-[#EAF4E8]
+                lg:order-2
+                lg:min-h-full
+              "
+            >
+
+              <AnimatePresence mode="wait">
+
+                <motion.div
+                  key={currentSlide}
+                  initial={{
+                    opacity: 0,
+                    scale: 1.03,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  exit={{
+                    opacity: 0,
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute inset-0"
+                >
+
+                  {/* =========================================
+                      VIDEO
+                  ========================================= */}
+
+                  {activeMedia?.type ===
+                    "video" ? (
+                    <video
+                      ref={(el) => {
+                        videoRefs.current[
+                          currentSlide
+                        ] = el;
+                      }}
+                      src={
+                        activeMedia.url
+                      }
+                      className="
+                        h-full
+                        w-full
+                        object-cover
+                      "
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      onError={() => {
+                        setImageErrors(
+                          (prev) => ({
+                            ...prev,
+                            [currentSlide]:
+                              true,
+                          })
+                        );
+                      }}
+                    />
+                  ) : (
+
+                    /* =======================================
+                       IMAGE
+                       Dynamic Firebase image with fallback.
+                    ======================================= */
+
+                    <img
+                      src={
+                        imageErrors[
+                          currentSlide
+                        ]
+                          ? FALLBACK_SLIDES[
+                            currentSlide %
+                            FALLBACK_SLIDES.length
+                          ].url
+                          : activeMedia?.url ||
+                          FALLBACK_SLIDES[
+                            currentSlide %
+                            FALLBACK_SLIDES.length
+                          ].url
+                      }
+                      alt={`Hero Slide ${currentSlide + 1
+                        }`}
+                      className="
+                        h-full
+                        w-full
+                        object-cover
+                      "
+                      onError={(event) =>
+                        handleImageError(
+                          event,
+                          currentSlide
+                        )
+                      }
+                    />
+                  )}
+
+                </motion.div>
+
+              </AnimatePresence>
+
+              {/* =============================================
+                  MEDIA OVERLAY
+                  Light overlay so image remains clearly visible.
+              ============================================= */}
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-0
+                  bg-gradient-to-r
+                  from-white/10
+                  via-transparent
+                  to-black/10
+                "
               />
-            ))}
+
+              {/* =============================================
+                  SLIDE CONTROLS
+              ============================================= */}
+
+              {slides.length > 1 && (
+                <div
+                  className="
+                    absolute
+                    bottom-4
+                    right-4
+                    z-20
+                    flex
+                    items-center
+                    gap-2
+                    rounded-2xl
+                    border
+                    border-white/40
+                    bg-black/45
+                    p-2
+                    backdrop-blur-md
+                  "
+                >
+
+                  {/* PLAY / PAUSE */}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsPlaying(
+                        !isPlaying
+                      )
+                    }
+                    className="
+                      hidden
+                      h-9
+                      w-9
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-white/15
+                      text-white
+                      transition
+                      hover:bg-[#2F6B3C]
+                      sm:flex
+                    "
+                    title={
+                      isPlaying
+                        ? "Pause Slideshow"
+                        : "Play Slideshow"
+                    }
+                  >
+                    {isPlaying ? (
+                      <Pause
+                        size={14}
+                      />
+                    ) : (
+                      <Play
+                        size={14}
+                      />
+                    )}
+                  </button>
+
+                  {/* PREVIOUS */}
+
+                  <button
+                    type="button"
+                    onClick={
+                      handlePrev
+                    }
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-white/15
+                      text-white
+                      transition
+                      hover:bg-[#2F6B3C]
+                    "
+                    title="Previous Slide"
+                  >
+                    <ChevronLeft
+                      size={18}
+                    />
+                  </button>
+
+                  {/* SLIDE COUNTER */}
+
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-1.5
+                      px-1
+                      text-[11px]
+                      font-bold
+                      text-white
+                    "
+                  >
+                    {activeMedia?.type ===
+                      "video" ? (
+                      <Film size={12} />
+                    ) : (
+                      <ImageIcon
+                        size={12}
+                      />
+                    )}
+
+                    {currentSlide + 1} /{" "}
+                    {slides.length}
+                  </div>
+
+                  {/* NEXT */}
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleNext
+                    }
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-white/15
+                      text-white
+                      transition
+                      hover:bg-[#2F6B3C]
+                    "
+                    title="Next Slide"
+                  >
+                    <ChevronRight
+                      size={18}
+                    />
+                  </button>
+
+                </div>
+              )}
+
+              {/* =============================================
+                  DOT INDICATORS
+              ============================================= */}
+
+              {slides.length > 1 && (
+                <div
+                  className="
+                    absolute
+                    bottom-5
+                    left-5
+                    z-20
+                    flex
+                    items-center
+                    gap-1.5
+                  "
+                >
+                  {slides.map(
+                    (slide, idx) => (
+                      <button
+                        key={
+                          slide.id ||
+                          idx
+                        }
+                        type="button"
+                        onClick={() =>
+                          setCurrentSlide(
+                            idx
+                          )
+                        }
+                        aria-label={`Go to slide ${idx + 1
+                          }`}
+                        className={`
+                          h-2
+                          rounded-full
+                          transition-all
+                          duration-300
+                          ${currentSlide ===
+                            idx
+                            ? "w-8 bg-[#2F6B3C]"
+                            : "w-2 bg-white/75 hover:bg-white"
+                          }
+                        `}
+                      />
+                    )
+                  )}
+                </div>
+              )}
+
+            </div>
+
           </div>
-        )}
+        </div>
       </div>
     </section>
   );

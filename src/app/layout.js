@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -6,14 +7,14 @@ import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   metadataBase: new URL(
-    "https://clinidix.com"
+    "https://diagnosticsbloom.com"
   ),
 
   title:
-    "Forest Labworks | Biomedical & Diagnostic Equipment",
+    "Raj Biosis | Biomedical & Diagnostic Equipment",
 
   description:
-    "Raj Biosis Private Limited (Raj Biomedical) supplies CBC Machines, Hematology Analyzers, Biochemistry Analyzers, ELISA Readers and laboratory equipment across India.",
+    "Raj Biosis Private Limited  supplies CBC Machines, Hematology Analyzers, Biochemistry Analyzers, ELISA Readers and laboratory equipment across India.",
 
   keywords: [
     "Biomedical Equipment Supplier",
@@ -24,17 +25,17 @@ export const metadata = {
     "Diagnostic Equipment Supplier",
     "Medical Equipment Supplier India",
     "Raj Biosis",
-    "Raj Biomedical",
+    "Raj Biosis",
   ],
 
   openGraph: {
     title:
-      "Forest Labworks | Biomedical & Diagnostic Equipment",
+      "Raj Biosis | Biomedical & Diagnostic Equipment",
 
     description:
       "A grounded, natural palette paired with robust biomedical functionality.",
 
-    url: "https://clinidix.com",
+    url: "https://diagnosticsbloom.com",
 
     siteName: "Raj Biosis Private Limited",
 
@@ -55,7 +56,7 @@ export const metadata = {
     card: "summary_large_image",
 
     title:
-      "Forest Labworks | Biomedical & Diagnostic Equipment",
+      "Raj Biosis | Biomedical & Diagnostic Equipment",
 
     description:
       "A grounded, natural palette paired with robust biomedical functionality.",
@@ -70,7 +71,7 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: "https://clinidix.com",
+    canonical: "https://diagnosticsbloom.com",
   },
 };
 
@@ -94,7 +95,9 @@ export default function RootLayout({
         </main>
 
         <Footer />
-        <ScrollToTop />
+        <Suspense fallback={null}>
+          <ScrollToTop />
+        </Suspense>
       </body>
     </html>
   );

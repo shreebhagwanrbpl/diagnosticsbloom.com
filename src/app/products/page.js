@@ -25,6 +25,11 @@ export default function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
     const loadProducts = async () => {
       const fetched = await fetchAllDynamicProducts();
       setProducts(fetched);
@@ -471,7 +476,7 @@ export default function ProductsPage() {
 
                 {/* Icon */}
 
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 transition-all duration-300 group-hover:bg-green-600 group-hover:text-white">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 transition-all duration-300 group-hover:bg-green-600 group-hover:!text-white icon-hover-surface">
 
                   {item.icon}
 

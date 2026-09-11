@@ -8,7 +8,7 @@ import {
 
 export default async function sitemap() {
     const baseUrl =
-        "https://clinidix.com";
+        "https://diagnosticsbloom.com";
 
     const urls = [];
 
@@ -43,7 +43,7 @@ export default async function sitemap() {
                 collection(
                     db,
                     "websites",
-                    "clinidixcom",
+                    "diagnosticsbloomcom",
                     "districts"
                 )
             );
@@ -94,7 +94,7 @@ export default async function sitemap() {
                 doc(
                     db,
                     "websites",
-                    "clinidixcom",
+                    "diagnosticsbloomcom",
                     "pages",
                     "products"
                 )
