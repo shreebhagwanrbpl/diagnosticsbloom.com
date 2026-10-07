@@ -22,25 +22,18 @@ import {
    ---------------------------------------------------------
    IMPORTANT:
    No static text fallback is used anywhere.
-   These images are ONLY used when Firebase media is empty
-   or a Firebase image fails to load.
 ========================================================= */
 
 const FALLBACK_SLIDES = [
   {
     id: "fallback-1",
     type: "image",
-    url: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1900&q=80",
+    url: "/images/biomedical-hero-1.jpg",
   },
   {
     id: "fallback-2",
     type: "image",
-    url: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1900&q=80",
-  },
-  {
-    id: "fallback-3",
-    type: "image",
-    url: "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1900&q=80",
+    url: "/images/biomedical-hero-2.jpg",
   },
 ];
 
@@ -70,6 +63,19 @@ export default function HeroCarousel({
   const parseMediaList = (data) => {
     if (!data) return [];
 
+    const isNonMedicalUrl = (rawUrl = "") => {
+      const u = String(rawUrl).toLowerCase();
+      return (
+        u.includes("hotel") ||
+        u.includes("resort") ||
+        u.includes("bedroom") ||
+        u.includes("room") ||
+        u.includes("bed") ||
+        u.includes("towel") ||
+        u.includes("furniture")
+      );
+    };
+
     const list = [];
 
     /* -------------------------------------------------------
@@ -94,7 +100,7 @@ export default function HeroCarousel({
             ? "video"
             : "image");
 
-        if (url) {
+        if (url && !isNonMedicalUrl(url)) {
           list.push({
             id: `media-${idx}`,
             type,
@@ -119,7 +125,7 @@ export default function HeroCarousel({
             ? item.trim()
             : item?.url?.trim?.() || item?.url;
 
-        if (url) {
+        if (url && !isNonMedicalUrl(url)) {
           list.push({
             id: `img-${idx}`,
             type: "image",
@@ -143,7 +149,7 @@ export default function HeroCarousel({
         data.image?.trim?.() ||
         data.image;
 
-      if (url) {
+      if (url && !isNonMedicalUrl(url)) {
         list.push({
           id: "single-img",
           type: "image",
@@ -228,7 +234,6 @@ export default function HeroCarousel({
   /* =======================================================
      SLIDES
      -------------------------------------------------------
-     Dynamic Firebase media first.
      Static fallback ONLY for images.
   ======================================================= */
 
@@ -245,7 +250,6 @@ export default function HeroCarousel({
      -------------------------------------------------------
      NO STATIC FALLBACKS.
      
-     If Firebase field is empty:
      → empty string
      → element will not render.
   ======================================================= */
@@ -478,9 +482,9 @@ export default function HeroCarousel({
         relative
         overflow-hidden
         bg-[#F7FBF6]
-        py-3
-        sm:py-4
-        lg:py-5
+        py-2
+        sm:py-3
+        lg:py-4
       "
     >
       <div className="container-custom">
@@ -493,12 +497,12 @@ export default function HeroCarousel({
           className="
             relative
             overflow-hidden
-            rounded-[28px]
+            rounded-[24px]
             border
             border-[#CFE1CF]
             bg-white
-            shadow-[0_24px_70px_rgba(47,107,60,0.14)]
-            sm:rounded-[36px]
+            shadow-[0_16px_50px_rgba(47,107,60,0.12)]
+            sm:rounded-[30px]
           "
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
@@ -512,11 +516,11 @@ export default function HeroCarousel({
           <div
             className="
               grid
-              min-h-[340px]
-              md:min-h-[400px]
-              lg:min-h-[455px]
-              xl:min-h-[480px]
-              lg:grid-cols-[1.05fr_0.95fr]
+              min-h-[280px]
+              md:min-h-[340px]
+              lg:min-h-[385px]
+              xl:min-h-[405px]
+              lg:grid-cols-[1.1fr_0.9fr]
             "
           >
 
@@ -529,12 +533,12 @@ export default function HeroCarousel({
                 order-2
                 flex
                 items-center
-                p-5
-                sm:p-7
-                md:p-8
+                p-4
+                sm:p-5
+                md:p-6
                 lg:order-1
-                lg:p-9
-                xl:p-10
+                lg:p-7
+                xl:p-8
               "
             >
               <div className="max-w-2xl">
@@ -548,14 +552,14 @@ export default function HeroCarousel({
                   <motion.div
                     initial={{
                       opacity: 0,
-                      y: -12,
+                      y: -10,
                     }}
                     animate={{
                       opacity: 1,
                       y: 0,
                     }}
                     className="
-                      mb-4
+                      mb-3
                       inline-flex
                       items-center
                       gap-2
@@ -563,8 +567,8 @@ export default function HeroCarousel({
                       border
                       border-[#CFE1CF]
                       bg-[#EAF4E8]
-                      px-3.5
-                      py-1.5
+                      px-3
+                      py-1
                       text-[11px]
                       font-extrabold
                       uppercase
@@ -573,7 +577,7 @@ export default function HeroCarousel({
                     "
                   >
                     <Sparkles
-                      size={14}
+                      size={13}
                       className="text-[#2F6B3C]"
                     />
 
@@ -584,7 +588,6 @@ export default function HeroCarousel({
 
                 {/* ===========================================
                     DYNAMIC HERO TITLE
-                    Firebase ONLY
                 =========================================== */}
 
                 {heroTitle && (
@@ -592,7 +595,7 @@ export default function HeroCarousel({
                     key={`title-${currentSlide}-${heroTitle}`}
                     initial={{
                       opacity: 0,
-                      y: 18,
+                      y: 14,
                     }}
                     animate={{
                       opacity: 1,
@@ -600,15 +603,15 @@ export default function HeroCarousel({
                     }}
                     className="
                       hero-editorial-title
-                      text-3xl
+                      text-2xl
                       font-black
-                      leading-[1.05]
+                      leading-[1.08]
                       tracking-tight
                       !text-[#193522]
-                      sm:text-4xl
-                      md:text-5xl
-                      lg:text-[52px]
-                      xl:text-[56px]
+                      sm:text-3xl
+                      md:text-4xl
+                      lg:text-[38px]
+                      xl:text-[42px]
                     "
                   >
                     {heroTitle}
@@ -617,7 +620,6 @@ export default function HeroCarousel({
 
                 {/* ===========================================
                     DYNAMIC DESCRIPTION
-                    Firebase ONLY
                 =========================================== */}
 
                 {heroDescription && (
@@ -625,7 +627,7 @@ export default function HeroCarousel({
                     key={`desc-${currentSlide}-${heroDescription}`}
                     initial={{
                       opacity: 0,
-                      y: 18,
+                      y: 14,
                     }}
                     animate={{
                       opacity: 1,
@@ -633,14 +635,14 @@ export default function HeroCarousel({
                     }}
                     className="
                       hero-editorial-description
-                      mt-4
+                      mt-3
                       max-w-xl
-                      text-sm
+                      text-xs
                       font-medium
-                      leading-6
+                      leading-relaxed
                       !text-[#657566]
-                      sm:text-base
-                      md:text-lg
+                      sm:text-sm
+                      md:text-base
                     "
                   >
                     {heroDescription}
@@ -649,7 +651,6 @@ export default function HeroCarousel({
 
                 {/* ===========================================
                     BUTTONS
-                    Text = Firebase
                     Link = Static
                 =========================================== */}
 
@@ -658,17 +659,17 @@ export default function HeroCarousel({
                     <motion.div
                       initial={{
                         opacity: 0,
-                        y: 18,
+                        y: 14,
                       }}
                       animate={{
                         opacity: 1,
                         y: 0,
                       }}
                       className="
-                      mt-5
+                      mt-4
                       flex
                       flex-wrap
-                      gap-3
+                      gap-2.5
                     "
                     >
 
@@ -683,20 +684,21 @@ export default function HeroCarousel({
                           items-center
                           justify-center
                           gap-2
-                          rounded-2xl
+                          rounded-xl
                           bg-[#2F6B3C]
-                          px-6
-                          py-3.5
-                          text-sm
+                          px-5
+                          py-3
+                          text-xs
+                          sm:text-sm
                           font-bold
                           !text-white
-                          shadow-lg
+                          shadow-md
                           shadow-[#2F6B3C]/25
                           transition-all
                           duration-300
-                          hover:-translate-y-1
+                          hover:-translate-y-0.5
                           hover:bg-[#24572F]
-                          hover:shadow-xl
+                          hover:shadow-lg
                         "
                         >
                           <span className="!text-white">
@@ -704,7 +706,7 @@ export default function HeroCarousel({
                           </span>
 
                           <ArrowRight
-                            size={16}
+                            size={15}
                             className="!text-white"
                           />
                         </Link>
@@ -721,23 +723,24 @@ export default function HeroCarousel({
                           items-center
                           justify-center
                           gap-2
-                          rounded-2xl
+                          rounded-xl
                           border
                           border-[#CFE1CF]
                           bg-[#F7FBF6]
-                          px-6
-                          py-3.5
-                          text-sm
+                          px-5
+                          py-3
+                          text-xs
+                          sm:text-sm
                           font-bold
                           !text-[#193522]
                           transition-all
                           duration-300
-                          hover:-translate-y-1
+                          hover:-translate-y-0.5
                           hover:bg-[#EAF4E8]
                         "
                         >
                           <PhoneCall
-                            size={16}
+                            size={15}
                             className="text-[#2F6B3C]"
                           />
 
@@ -756,22 +759,22 @@ export default function HeroCarousel({
 
                 <div
                   className="
-                    mt-5
+                    mt-4
                     flex
                     flex-wrap
-                    gap-x-5
-                    gap-y-2
+                    gap-x-4
+                    gap-y-1.5
                     border-t
                     border-[#CFE1CF]
-                    pt-4
-                    text-xs
+                    pt-3
+                    text-[11px]
                     font-bold
                     text-[#657566]
                   "
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <CheckCircle2
-                      size={15}
+                      size={14}
                       className="text-[#2F6B3C]"
                     />
                     ISO 13485 Certified
@@ -779,7 +782,7 @@ export default function HeroCarousel({
 
                   <span className="inline-flex items-center gap-1.5">
                     <CheckCircle2
-                      size={15}
+                      size={14}
                       className="text-[#2F6B3C]"
                     />
                     24/7 SLA Field Support
@@ -787,7 +790,7 @@ export default function HeroCarousel({
 
                   <span className="inline-flex items-center gap-1.5">
                     <CheckCircle2
-                      size={15}
+                      size={14}
                       className="text-[#2F6B3C]"
                     />
                     NABL Traceable QC
@@ -805,7 +808,8 @@ export default function HeroCarousel({
               className="
                 relative
                 order-1
-                min-h-[220px]
+                min-h-[190px]
+                sm:min-h-[220px]
                 overflow-hidden
                 bg-[#EAF4E8]
                 lg:order-2
@@ -874,7 +878,6 @@ export default function HeroCarousel({
 
                     /* =======================================
                        IMAGE
-                       Dynamic Firebase image with fallback.
                     ======================================= */
 
                     <img
@@ -892,8 +895,10 @@ export default function HeroCarousel({
                             FALLBACK_SLIDES.length
                           ].url
                       }
-                      alt={`Hero Slide ${currentSlide + 1
-                        }`}
+                      alt={`Hero Slide ${currentSlide + 1}`}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                       className="
                         h-full
                         w-full

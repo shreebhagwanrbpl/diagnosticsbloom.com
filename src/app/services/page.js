@@ -1,8 +1,7 @@
 "use client";
+import { db, doc, getDoc } from "@/lib/client-api";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import PageBanner from "@/components/PageBanner";
@@ -108,7 +107,6 @@ export default function ServicesPage() {
 
 
   // ============================================================
-  // FIREBASE DATA
   // ============================================================
 
   useEffect(() => {
@@ -165,7 +163,6 @@ export default function ServicesPage() {
 
           setServices(dbServices);
         } else {
-          // Firebase document nahi hai
           setServices([]);
         }
 
@@ -289,7 +286,6 @@ export default function ServicesPage() {
 
 
             {/* ==================================================
-                FIREBASE SERVICES
                 ================================================== */}
 
             {!loading &&

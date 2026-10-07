@@ -1,5 +1,6 @@
 "use client";
 
+import { db, doc, getDoc, addDoc, collection } from "@/lib/client-api";
 import { useEffect, useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -16,13 +17,6 @@ import {
     FaLink,
 } from "react-icons/fa";
 
-import {
-    doc,
-    getDoc,
-    addDoc,
-    collection,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import {
     Microscope,
     ShieldCheck,
@@ -342,7 +336,6 @@ export default function ProductDetails({ slug }) {
                     }
                 }
             } catch (error) {
-                console.error("Error loading product from Firestore:", error);
                 setProduct(null);
             }
         };

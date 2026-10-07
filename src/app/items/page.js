@@ -60,7 +60,6 @@ function ProductsContent({ city }) {
 
     loadInitialProducts();
 
-    // Subscribe to real-time catalog changes from Firestore
     const unsubscribe = subscribeToCatalog((updatedCatalog) => {
       if (isMounted && Array.isArray(updatedCatalog) && updatedCatalog.length > 0) {
         const normalized = updatedCatalog

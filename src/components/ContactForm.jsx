@@ -1,8 +1,7 @@
 "use client";
+import { db, addDoc, collection } from "@/lib/client-api";
 
 import { useState } from "react";
-import { addDoc, collection } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import toast from "react-hot-toast";
 import { Send, CheckCircle2, User, Phone, Mail, MessageSquare } from "lucide-react";
 

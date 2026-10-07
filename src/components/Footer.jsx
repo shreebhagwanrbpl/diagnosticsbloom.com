@@ -1,8 +1,7 @@
 "use client";
+import { db, doc, getDoc } from "@/lib/client-api";
 
 import { useEffect, useState, useMemo } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -108,7 +107,6 @@ export default function Footer() {
     loadDistrict();
   }, [district]);
 
-  // Extract phone numbers flexibly from Firestore contactInfo
   const phoneItems = contactInfo.filter((item) => {
     const l = (item?.label || "").toLowerCase();
     return (
@@ -289,7 +287,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Contact Info - Purely Dynamic from Firestore */}
           <div>
             <h3 className="mb-5 text-lg font-bold text-[#193522]">
               Contact Info

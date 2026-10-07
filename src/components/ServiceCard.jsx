@@ -30,7 +30,7 @@ export default function ServiceCard({
       <div>
         {/* Top bar with Icon & Badge */}
         <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E1EFDF] to-[#EAF4E8] text-[#2F6B3C] transition-all duration-300 group-hover:bg-[#2F6B3C] group-hover:!text-white group-hover:scale-105 icon-hover-surface shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#E1EFDF] text-[#2F6B3C] shadow-sm transition-all duration-300 group-hover:!bg-[#2F6B3C] group-hover:text-white group-hover:scale-110 group-hover:shadow-md [&_svg]:transition-all [&_svg]:duration-300 [&_svg]:stroke-[#2F6B3C] group-hover:[&_svg]:stroke-white group-hover:[&_svg]:text-white">
             {icon}
           </div>
 

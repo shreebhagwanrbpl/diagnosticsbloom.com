@@ -1,9 +1,8 @@
 "use client";
+import { db, doc, getDoc } from "@/lib/client-api";
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import PageBanner from "@/components/PageBanner";
 import SectionTitle from "@/components/SectionTitle";
 import ContactForm from "@/components/ContactForm";
@@ -136,7 +135,6 @@ export default function ContactPage() {
       <section className="section-padding bg-gradient-to-b from-white via-[#F7FBF6] to-[#EAF4E8]">
         <div className="container-custom">
           <div className="grid lg:grid-cols-12 gap-12 items-start">
-            {/* Left Contact Cards - 100% Dynamic from Firestore */}
             <div className="lg:col-span-5 space-y-6">
               <SectionTitle
                 badge="Reach Us Directly"

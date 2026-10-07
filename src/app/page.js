@@ -1,10 +1,9 @@
 "use client";
+import { db, doc, getDoc } from "@/lib/client-api";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { motion } from "framer-motion";
 
 import {
@@ -136,7 +135,6 @@ export default function Home({ city }) {
   // DYNAMIC DATA
   // ============================================================
 
-  // Services are ONLY loaded from Firebase.
   // No static fallback.
   const [services, setServices] = useState([]);
 
@@ -187,193 +185,128 @@ export default function Home({ city }) {
 
 
   // ============================================================
-  // FETCH FIREBASE DATA
   // ============================================================
 
   useEffect(() => {
-    const fetchData = async () => {
+    // 1. Instant pre-hydration from sessionStorage for zero-delay render
+    if (typeof window !== "undefined") {
       try {
+        const cachedServices = window.sessionStorage.getItem("db_services_cache");
+        if (cachedServices) {
+          const parsed = JSON.parse(cachedServices);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setServices(parsed);
+            setLoading(false);
+          }
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    }
 
-        // ========================================================
-        // HOME DATA
-        // ========================================================
+    let isMounted = true;
 
+    // 2. Fetch all dynamic endpoints simultaneously in parallel
+    const loadAll = async () => {
+      const fetchServicesTask = async () => {
+        try {
+          const serviceSnap = await getDoc(
+            doc(db, "websites", "diagnosticsbloomcom", "pages", "services")
+          );
+          if (!isMounted) return;
+          if (serviceSnap.exists()) {
+            const data = serviceSnap.data();
+            const dbServices = Array.isArray(data?.services)
+              ? data.services
+                  .map((service, index) => ({
+                    id: service?.id || `service-${index}`,
+                    title: typeof service?.title === "string" ? service.title.trim() : "",
+                    desc: typeof service?.desc === "string" ? service.desc.trim() : "",
+                  }))
+                  .filter((service) => service.title && service.desc)
+              : [];
+
+            setServices(dbServices);
+
+            if (typeof window !== "undefined" && dbServices.length > 0) {
+              try {
+                window.sessionStorage.setItem("db_services_cache", JSON.stringify(dbServices));
+              } catch {}
+            }
+          } else {
+            setServices([]);
+          }
+        } catch (serviceErr) {
+          console.error("Error fetching services:", serviceErr);
+          setServices([]);
+        }
+      };
+
+      const fetchHomeTask = async () => {
         try {
           const homeSnap = await getDoc(
-            doc(
-              db,
-              "websites",
-              "diagnosticsbloomcom",
-              "pages",
-              "home"
-            )
+            doc(db, "websites", "diagnosticsbloomcom", "pages", "home")
           );
-
+          if (!isMounted) return;
           if (homeSnap.exists()) {
             setHomeData(homeSnap.data());
           } else {
             setHomeData(null);
           }
-
         } catch (homeErr) {
-          console.error(
-            "Error fetching home data:",
-            homeErr
-          );
-
+          console.error("Error fetching home data:", homeErr);
           setHomeData(null);
         }
+      };
 
-
-        // ========================================================
-        // CONTACT DATA
-        // ========================================================
-
+      const fetchContactTask = async () => {
         try {
           const contactSnap = await getDoc(
-            doc(
-              db,
-              "websites",
-              "diagnosticsbloomcom",
-              "pages",
-              "contact"
-            )
+            doc(db, "websites", "diagnosticsbloomcom", "pages", "contact")
           );
-
+          if (!isMounted) return;
           if (contactSnap.exists()) {
             const contactData = contactSnap.data();
-
             setContactInfo(
-              Array.isArray(contactData?.contactInfo)
-                ? contactData.contactInfo
-                : []
+              Array.isArray(contactData?.contactInfo) ? contactData.contactInfo : []
             );
           } else {
             setContactInfo([]);
           }
-
         } catch (contactErr) {
-          console.error(
-            "Error fetching contact data:",
-            contactErr
-          );
-
+          console.error("Error fetching contact data:", contactErr);
           setContactInfo([]);
         }
+      };
 
-
-        // ========================================================
-        // SERVICES - 100% DYNAMIC
-        // ========================================================
-        //
-        // Admin se currently:
-        // title
-        // desc
-        //
-        // save ho rahe hain.
-        //
-        // Isliye Home page par bhi sirf ye fields dynamic hain.
-        //
-        // IMPORTANT:
-        // Koi fallbackServices nahi.
-        // ========================================================
-
+      const fetchProductsTask = async () => {
         try {
-          const serviceSnap = await getDoc(
-            doc(
-              db,
-              "websites",
-              "diagnosticsbloomcom",
-              "pages",
-              "services"
-            )
-          );
-
-          if (serviceSnap.exists()) {
-            const data = serviceSnap.data();
-
-            const dbServices = Array.isArray(data?.services)
-              ? data.services
-                .map((service, index) => ({
-                  id:
-                    service?.id ||
-                    `service-${index}`,
-
-                  title:
-                    typeof service?.title === "string"
-                      ? service.title.trim()
-                      : "",
-
-                  desc:
-                    typeof service?.desc === "string"
-                      ? service.desc.trim()
-                      : "",
-                }))
-                .filter(
-                  (service) =>
-                    service.title &&
-                    service.desc
-                )
-              : [];
-
-            // Firebase data available
-            setServices(dbServices);
-
-          } else {
-            // No document = no services
-            setServices([]);
-          }
-
-        } catch (serviceErr) {
-          console.error(
-            "Error fetching services:",
-            serviceErr
-          );
-
-          // Error = no static fallback
-          setServices([]);
-        }
-
-
-        // ========================================================
-        // PRODUCTS - DYNAMIC
-        // ========================================================
-
-        try {
-          const fetchedProducts =
-            await fetchAllDynamicProducts();
-
-          // Always update, even if empty.
-          setProducts(
-            Array.isArray(fetchedProducts)
-              ? fetchedProducts
-              : []
-          );
-
+          const fetchedProducts = await fetchAllDynamicProducts();
+          if (!isMounted) return;
+          setProducts(Array.isArray(fetchedProducts) ? fetchedProducts : []);
         } catch (productErr) {
-          console.error(
-            "Error fetching products:",
-            productErr
-          );
-
+          console.error("Error fetching products:", productErr);
           setProducts([]);
         }
+      };
 
-      } catch (err) {
-        console.error(
-          "Error loading dynamic home data:",
-          err
-        );
+      await Promise.allSettled([
+        fetchServicesTask(),
+        fetchHomeTask(),
+        fetchContactTask(),
+        fetchProductsTask(),
+      ]);
 
-        setServices([]);
-        setProducts([]);
-      } finally {
+      if (isMounted) {
         setLoading(false);
       }
     };
 
+    loadAll();
 
-    fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
 
@@ -718,7 +651,6 @@ export default function Home({ city }) {
       {/* ========================================================
           SERVICES MATRIX
           ========================================================
-          SERVICES = FIREBASE ONLY
           NO STATIC FALLBACK
           ======================================================== */}
 
@@ -762,12 +694,12 @@ export default function Home({ city }) {
 
 
             {/* ==================================================
-                FIREBASE SERVICES
+                SHOW EXACTLY 3 SERVICES
                 ================================================== */}
 
             {!loading &&
               services.length > 0 &&
-              services.map((srv, idx) => (
+              services.slice(0, 3).map((srv, idx) => (
                 <ServiceCard
                   key={srv.id || idx}
                   icon={
@@ -825,6 +757,18 @@ export default function Home({ city }) {
             )}
 
           </div>
+
+          {!loading && services.length > 3 && (
+            <div className="mt-12 text-center">
+              <Link
+                href={makeLink("/services")}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#2F6B3C] px-8 py-4 text-sm font-bold !text-white shadow-md shadow-[#2F6B3C]/20 transition-all duration-300 hover:bg-[#193522] hover:shadow-lg hover:-translate-y-0.5"
+              >
+                <span>Explore All Services</span>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
 
         </div>
       </section>
